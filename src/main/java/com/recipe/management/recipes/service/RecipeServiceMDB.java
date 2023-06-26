@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 
 import com.recipe.management.recipes.exception.NotFoundException;
 import com.recipe.management.recipes.model.RecipeMDB;
+import com.recipe.management.recipes.model.Review;
 import com.recipe.management.recipes.repository.RecipeRepositoryMDB;
 
 @Service
@@ -104,6 +105,19 @@ public class RecipeServiceMDB {
     
     public List<RecipeMDB> getFavoriteRecipes() {
         return recipeRepository.findByIsFavorite(true);
+    }
+    
+    public Review addReviewToRecipe(ObjectId recipeId, Review review) {
+        RecipeMDB recipe = recipeRepository.findById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
+        recipe.getReviews().add(review);
+        recipe.calculateAverageRating();
+        recipeRepository.save(recipe);
+        return review;
+    }
+    
+    public List<Review> getReviewsForRecipe(ObjectId recipeId) {
+        RecipeMDB recipe = recipeRepository.findById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
+        return recipe.getReviews();
     }
 
 }

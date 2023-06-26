@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.recipe.management.recipes.exception.NotFoundException;
 import com.recipe.management.recipes.model.RecipeMDB;
+import com.recipe.management.recipes.model.Review;
 import com.recipe.management.recipes.service.RecipeServiceMDB;
 
 @RestController
@@ -95,6 +96,18 @@ public class RecipeControllerMDB {
     public ResponseEntity<List<RecipeMDB>> getFavoriteRecipes() {
         List<RecipeMDB> favoriteRecipes = recipeService.getFavoriteRecipes();
         return ResponseEntity.ok(favoriteRecipes);
+    }
+    
+    @PostMapping("/{id}/reviews")
+    public ResponseEntity<Review> addReviewToRecipe(@PathVariable("id") ObjectId recipeId, @RequestBody Review review) {
+        Review addedReview = recipeService.addReviewToRecipe(recipeId, review);
+        return ResponseEntity.status(HttpStatus.CREATED).body(addedReview);
+    }
+    
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<List<Review>> getReviewsForRecipe(@PathVariable("id") ObjectId recipeId) {
+        List<Review> reviews = recipeService.getReviewsForRecipe(recipeId);
+        return ResponseEntity.ok(reviews);
     }
 
     @ExceptionHandler(NotFoundException.class)
