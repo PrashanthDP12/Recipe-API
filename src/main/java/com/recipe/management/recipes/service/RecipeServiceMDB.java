@@ -107,6 +107,13 @@ public class RecipeServiceMDB {
         return recipeRepository.findByIsFavorite(true);
     }
     
+    public RecipeMDB unmarkRecipeAsFavorite(ObjectId id) {
+        RecipeMDB recipe = recipeRepository.findById(id).orElseThrow(() -> new NotFoundException("Recipe not found"));
+        recipe.setFavorite(false);
+        return recipeRepository.save(recipe);
+    }
+
+    
     public Review addReviewToRecipe(ObjectId recipeId, Review review) {
         RecipeMDB recipe = recipeRepository.findById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
         recipe.getReviews().add(review);
@@ -119,6 +126,41 @@ public class RecipeServiceMDB {
         RecipeMDB recipe = recipeRepository.findById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
         return recipe.getReviews();
     }
+    
+    public void deleteReview(ObjectId recipeId, String userId) {
+        RecipeMDB recipe = findRecipeById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
+
+        Optional<Review> reviewToDelete = recipe.getReviews().stream()
+                .filter(review -> review.getUserId().equals(userId.trim())) // Compare userId with trimmed userId from the request
+                .findFirst();
+
+        if (reviewToDelete.isPresent()) {
+            recipe.getReviews().remove(reviewToDelete.get());
+            recipeRepository.save(recipe); // Update the recipe in the database
+        } else {
+            throw new NotFoundException("Review not found");
+        }
+    }
+    
+    public Review updateReview(ObjectId recipeId, String reviewId, Review updatedReview) {
+        RecipeMDB recipe = findRecipeById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
+        
+        Optional<Review> reviewToUpdate = recipe.getReviews().stream()
+                .filter(review -> review.getUserId().equals(reviewId))
+                .findFirst();
+
+        if (reviewToUpdate.isPresent()) {
+            Review review = reviewToUpdate.get();
+            review.setRating(updatedReview.getRating());
+            review.setComment(updatedReview.getComment());
+            recipe.calculateAverageRating();
+            recipeRepository.save(recipe);
+            return review;
+        } else {
+            throw new NotFoundException("Review not found");
+        }
+    }
+
 
 }
 

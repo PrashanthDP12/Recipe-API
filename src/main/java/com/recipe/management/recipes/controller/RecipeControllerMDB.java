@@ -98,6 +98,14 @@ public class RecipeControllerMDB {
         return ResponseEntity.ok(favoriteRecipes);
     }
     
+    @DeleteMapping("/{id}/favorite")
+    public ResponseEntity<RecipeMDB> unmarkRecipeAsFavorite(@PathVariable("id") String id) {
+        ObjectId objectId = new ObjectId(id);
+        RecipeMDB recipe = recipeService.unmarkRecipeAsFavorite(objectId);
+        return ResponseEntity.ok(recipe);
+    }
+
+    
     @PostMapping("/{id}/reviews")
     public ResponseEntity<Review> addReviewToRecipe(@PathVariable("id") ObjectId recipeId, @RequestBody Review review) {
         Review addedReview = recipeService.addReviewToRecipe(recipeId, review);
@@ -109,6 +117,26 @@ public class RecipeControllerMDB {
         List<Review> reviews = recipeService.getReviewsForRecipe(recipeId);
         return ResponseEntity.ok(reviews);
     }
+    
+    @DeleteMapping("/{id}/reviews")
+    public ResponseEntity<String> deleteReview(@PathVariable("recipeId") ObjectId recipeId, @RequestParam("userId") String userId) {
+        try {
+            recipeService.deleteReview(recipeId, userId);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Review deleted successfully");
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+    
+    @PutMapping("/{id}/reviews")
+    public ResponseEntity<Review> updateReview(
+            @PathVariable("id") ObjectId recipeId,
+            @RequestParam("userId") String userId,
+            @RequestBody Review updatedReview) {
+        Review updated = recipeService.updateReview(recipeId, userId, updatedReview);
+        return ResponseEntity.ok(updated);
+    }
+
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<String> handleNotFoundException(NotFoundException ex) {
