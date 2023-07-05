@@ -160,7 +160,151 @@ public class RecipeServiceMDB {
             throw new NotFoundException("Review not found");
         }
     }
+    
+    // Methods based on RecipeKey
+    
+    public Optional<RecipeMDB> findRecipeByRecipeKey(String recipeKey) {
+        return recipeRepository.findByRecipeKey(recipeKey);
+    }
+    
+    public RecipeMDB updateRecipeByRecipeKey(String recipeKey, RecipeMDB updatedRecipe) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+            recipe.setTitle(updatedRecipe.getTitle());
+            recipe.setDescription(updatedRecipe.getDescription());
+            recipe.setCookingTime(updatedRecipe.getCookingTime());
+            recipe.setIngredients(updatedRecipe.getIngredients());
+            recipe.setMethod(updatedRecipe.getMethod());
+            return recipeRepository.save(recipe);
+        }
+        return null; // or throw an exception indicating recipe not found
+    }
 
+    public void deleteRecipeByRecipeKey(String recipeKey) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        existingRecipe.ifPresent(recipe -> recipeRepository.deleteById(recipe.getId()));
+    }
 
+    public Page<RecipeMDB> searchRecipesByRecipeKey(String keyword, Pageable pageable) {
+        // Create a Query object
+        Query query = new Query();
+
+        // Create a Criteria object to build the search conditions
+        Criteria criteria = new Criteria();
+
+        // Add the search conditions for title, ingredients, and description fields
+        if (StringUtils.hasText(keyword)) {
+            criteria.orOperator(
+                Criteria.where("title").regex(keyword, "i"),
+                Criteria.where("ingredients").regex(keyword, "i"),
+                Criteria.where("description").regex(keyword, "i")
+            );
+        }
+
+        // Add the criteria to the query
+        query.addCriteria(criteria);
+
+        // Set the pagination parameters
+        query.with(pageable);
+
+        // Use the MongoTemplate to execute the search query with pagination
+        List<RecipeMDB> recipes = mongoTemplate.find(query, RecipeMDB.class);
+
+        // Get the total count of recipes matching the search criteria
+        long totalCount = mongoTemplate.count(query, RecipeMDB.class);
+
+        // Create a Page object with the recipes and pagination information
+        return new PageImpl<>(recipes, pageable, totalCount);
+    }
+
+    public RecipeMDB markRecipeAsFavoriteByRecipeKey(String recipeKey) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+            recipe.setFavorite(true);
+            return recipeRepository.save(recipe);
+        }
+        throw new NotFoundException("Recipe not found");
+    }
+
+    public List<RecipeMDB> getFavoriteRecipesByRecipeKey() {
+        return recipeRepository.findByIsFavorite(true);
+    }
+
+    public RecipeMDB unmarkRecipeAsFavoriteByRecipeKey(String recipeKey) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+            recipe.setFavorite(false);
+            return recipeRepository.save(recipe);
+        }
+        throw new NotFoundException("Recipe not found");
+    }
+
+    public Review addReviewToRecipeByRecipeKey(String recipeKey, Review review) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+            recipe.getReviews().add(review);
+            recipe.calculateAverageRating();
+            recipeRepository.save(recipe);
+            return review;
+        }
+        throw new NotFoundException("Recipe not found");
+    }
+
+    public List<Review> getReviewsForRecipeByRecipeKey(String recipeKey) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+            return recipe.getReviews();
+        }
+        throw new NotFoundException("Recipe not found");
+    }
+
+    public void deleteReviewByRecipeKeyAndUserId(String recipeKey, String userId) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+
+            Optional<Review> reviewToDelete = recipe.getReviews().stream()
+                .filter(review -> review.getUserId().equals(userId.trim()))
+                .findFirst();
+
+            if (reviewToDelete.isPresent()) {
+                recipe.getReviews().remove(reviewToDelete.get());
+                recipeRepository.save(recipe);
+                return;
+            }
+            throw new NotFoundException("Review not found");
+        }
+        throw new NotFoundException("Recipe not found");
+    }
+
+    public Review updateReviewByRecipeKeyAndReviewId(String recipeKey, String reviewId, Review updatedReview) {
+        Optional<RecipeMDB> existingRecipe = recipeRepository.findByRecipeKey(recipeKey);
+        if (existingRecipe.isPresent()) {
+            RecipeMDB recipe = existingRecipe.get();
+
+            Optional<Review> reviewToUpdate = recipe.getReviews().stream()
+                .filter(review -> review.getUserId().equals(reviewId))
+                .findFirst();
+
+            if (reviewToUpdate.isPresent()) {
+                Review review = reviewToUpdate.get();
+                review.setRating(updatedReview.getRating());
+                review.setComment(updatedReview.getComment());
+                recipe.calculateAverageRating();
+                recipeRepository.save(recipe);
+                return review;
+            }
+            throw new NotFoundException("Review not found");
+        }
+        throw new NotFoundException("Recipe not found");
+    }
 }
+
+
+
 

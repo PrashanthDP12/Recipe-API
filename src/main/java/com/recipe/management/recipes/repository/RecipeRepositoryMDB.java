@@ -12,4 +12,5 @@ import com.recipe.management.recipes.model.RecipeMDB;
 public interface RecipeRepositoryMDB extends MongoRepository<RecipeMDB, ObjectId> {
     Optional<RecipeMDB> findRecipeById(ObjectId id);
     List<RecipeMDB> findByIsFavorite(boolean isFavorite);
+    Optional<RecipeMDB> findByRecipeKey(String recipeKey);
 }
